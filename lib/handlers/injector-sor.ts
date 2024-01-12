@@ -55,19 +55,7 @@ import { OnChainTokenFeeFetcher } from '@uniswap/smart-order-router/build/main/p
 import { PortionProvider } from '@uniswap/smart-order-router/build/main/providers/portion-provider'
 
 export const SUPPORTED_CHAINS: ChainId[] = [
-  ChainId.MAINNET,
-  ChainId.OPTIMISM,
-  ChainId.ARBITRUM_ONE,
-  ChainId.ARBITRUM_GOERLI,
-  ChainId.POLYGON,
-  ChainId.POLYGON_MUMBAI,
-  ChainId.GOERLI,
-  ChainId.SEPOLIA,
-  ChainId.CELO,
-  ChainId.CELO_ALFAJORES,
-  ChainId.BNB,
-  ChainId.AVALANCHE,
-  ChainId.BASE,
+  ChainId.ZKATANA
 ]
 const DEFAULT_TOKEN_LIST = 'https://gateway.ipfs.io/ipns/tokens.uniswap.org'
 
@@ -99,7 +87,7 @@ export type ContainerDependencies = {
   v2QuoteProvider: V2QuoteProvider
   simulator: Simulator
   routeCachingProvider?: IRouteCachingProvider
-  tokenValidatorProvider: TokenValidatorProvider
+  tokenValidatorProvider?: TokenValidatorProvider // TODO: tokenValidator는 v2용이기 때문에 삭제
   tokenPropertiesProvider: ITokenPropertiesProvider
 }
 
@@ -197,11 +185,11 @@ export abstract class InjectorSOR<Router, QueryParams> extends Injector<
           })
 
           const tokenFeeFetcher = new OnChainTokenFeeFetcher(chainId, provider)
-          const tokenValidatorProvider = new TokenValidatorProvider(
-            chainId,
-            multicall2Provider,
-            new NodeJSCache(new NodeCache({ stdTTL: 30000, useClones: false }))
-          )
+          // const tokenValidatorProvider = new TokenValidatorProvider(
+          //   chainId,
+          //   multicall2Provider,
+          //   new NodeJSCache(new NodeCache({ stdTTL: 30000, useClones: false }))
+          // )
           const tokenPropertiesProvider = new TokenPropertiesProvider(
             chainId,
             new NodeJSCache(new NodeCache({ stdTTL: 30000, useClones: false })),
@@ -392,7 +380,7 @@ export abstract class InjectorSOR<Router, QueryParams> extends Injector<
               v2SubgraphProvider,
               simulator,
               routeCachingProvider,
-              tokenValidatorProvider,
+              // tokenValidatorProvider,
               tokenPropertiesProvider,
             },
           }

@@ -1,4 +1,3 @@
-import { SUPPORTED_CHAINS } from '@uniswap/smart-order-router'
 import * as cdk from 'aws-cdk-lib'
 import { ChainId } from '@uniswap/sdk-core'
 import { CfnOutput, Duration } from 'aws-cdk-lib'
@@ -16,8 +15,9 @@ import { RoutingCachingStack } from './routing-caching-stack'
 import { RoutingDashboardStack } from './routing-dashboard-stack'
 import { RoutingLambdaStack } from './routing-lambda-stack'
 import { RoutingDatabaseStack } from './routing-database-stack'
+import { SUPPORTED_CHAINS } from '../../lib/handlers/injector-sor'
 
-export const CHAINS_NOT_MONITORED: ChainId[] = [ChainId.GOERLI, ChainId.POLYGON_MUMBAI]
+export const CHAINS_NOT_MONITORED: ChainId[] = []
 
 export class RoutingAPIStack extends cdk.Stack {
   public readonly url: CfnOutput
