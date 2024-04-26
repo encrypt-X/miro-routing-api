@@ -35,7 +35,8 @@ export class RoutingDashboardStack extends cdk.NestedStack {
     const region = cdk.Stack.of(this).region
 
     const TESTNETS = [
-      ChainId.ZKATANA
+      ChainId.ZKATANA,
+      ChainId.SEIDEV,
     ]
 
     const MAINNETS = SUPPORTED_CHAINS.filter((chain) => !TESTNETS.includes(chain))

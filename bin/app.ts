@@ -263,7 +263,8 @@ export class RoutingAPIPipeline extends Stack {
 const app = new cdk.App()
 
 const jsonRpcProviders = {
-  WEB3_RPC_1261120: process.env.JSON_RPC_PROVIDER_1261120!,
+  // WEB3_RPC_1261120: process.env.JSON_RPC_PROVIDER_1261120!,
+  WEB3_RPC_713715: process.env.JSON_RPC_PROVIDER_SEIDEV!,
 }
 
 // Local dev stack

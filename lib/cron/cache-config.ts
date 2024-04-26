@@ -10,6 +10,12 @@ export const chainProtocols = [
     timeout: 90000,
     provider: new V3SubgraphProvider(ChainId.ZKATANA, 3, 90000),
   },
+  {
+    protocol: Protocol.V3,
+    chainId: ChainId.SEIDEV,
+    timeout: 90000,
+    provider: new V3SubgraphProvider(ChainId.SEIDEV, 3, 90000),
+  },
   // V3.
   // {
   //   protocol: Protocol.V3,

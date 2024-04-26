@@ -84,10 +84,10 @@
     "@uniswap/default-token-list": "^11.2.0",
     "@uniswap/permit2-sdk": "^1.2.0",
     "@uniswap/router-sdk": "^1.6.0",
-    "@uniswap/sdk-core": "git://github.com/encrypt-X/sdk-core.git#0d83f0cb89f6df8b77da295e067ee0847273c020",
-    "@uniswap/smart-order-router": "git://github.com/encrypt-X/smart-order-router.git#3f37f8512aecd2063ea37141d9a46cc2391431ef",
+    "@uniswap/sdk-core": "github:encrypt-X/miro-uniswap-sdk-core#v4.0.11",
+    "@uniswap/smart-order-router": "github:encrypt-X/miro-uniswap-smart-order-router#v3.20.4",
     "@uniswap/token-lists": "^1.0.0-beta.33",
-    "@uniswap/universal-router-sdk": "git://github.com/encrypt-X/universal-router-sdk.git#115f8aff22758dbcda96739f72ceee5c2b10519a",
+    "@uniswap/universal-router-sdk": "github:encrypt-X/miro-uniswap-universal-router-sdk#v2.0.4",
     "@uniswap/v2-sdk": "^3.2.3",
     "@uniswap/v3-periphery": "^1.1.0",
     "@uniswap/v3-sdk": "^3.10.0",
@@ -120,5 +120,15 @@
     "printWidth": 120,
     "semi": false,
     "singleQuote": true
+  },
+  "overrides": {
+    "@uniswap/router-sdk": {
+      "@uniswap/v2-sdk": "$@uniswap/v2-sdk",
+      "@uniswap/v3-sdk": "$@uniswap/v3-sdk",
+      "@uniswap/sdk-core": "$@uniswap/sdk-core"
+    },
+    "@uniswap/v3-sdk": {
+      "@uniswap/sdk-core": "$@uniswap/sdk-core"
+    }
   }
 }

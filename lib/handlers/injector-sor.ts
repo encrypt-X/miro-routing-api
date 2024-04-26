@@ -55,7 +55,8 @@ import { OnChainTokenFeeFetcher } from '@uniswap/smart-order-router/build/main/p
 import { PortionProvider } from '@uniswap/smart-order-router/build/main/providers/portion-provider'
 
 export const SUPPORTED_CHAINS: ChainId[] = [
-  ChainId.ZKATANA
+  // ChainId.ZKATANA,
+  ChainId.SEIDEV,
 ]
 const DEFAULT_TOKEN_LIST = 'https://gateway.ipfs.io/ipns/tokens.uniswap.org'
 
