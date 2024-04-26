@@ -1,3 +1,10 @@
+# How to
+- setup AWS CLI and access token in shell env, then setup deployment profile by `export $(cat .env.dev)`
+- build CDK template by `cdk synth` to `./cdk.out`
+- deploy `lib/` codes by `cdk deploy --require-approval any-change`
+
+---
+
 # Uniswap Routing API
 
 This repository contains routing API for the Uniswap V3 protocol.
