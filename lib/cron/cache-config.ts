@@ -4,12 +4,12 @@ import { ChainId } from '@uniswap/sdk-core'
 
 export const chainProtocols = [
   // gradient
-  {
-    protocol: Protocol.V3,
-    chainId: ChainId.ZKATANA,
-    timeout: 90000,
-    provider: new V3SubgraphProvider(ChainId.ZKATANA, 3, 90000),
-  },
+  // {
+  //   protocol: Protocol.V3,
+  //   chainId: ChainId.ZKATANA,
+  //   timeout: 90000,
+  //   provider: new V3SubgraphProvider(ChainId.ZKATANA, 3, 90000),
+  // },
   {
     protocol: Protocol.V3,
     chainId: ChainId.SEIDEV,

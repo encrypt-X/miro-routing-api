@@ -2,8 +2,12 @@ import * as cdk from 'aws-cdk-lib'
 import * as aws_dynamodb from 'aws-cdk-lib/aws-dynamodb'
 import { AttributeType, BillingMode } from 'aws-cdk-lib/aws-dynamodb'
 import { Construct } from 'constructs'
+import { RemovalPolicy } from 'aws-cdk-lib'
+import { STAGE } from '../../lib/util/stage'
 
-export interface RoutingDatabaseStackProps extends cdk.NestedStackProps {}
+export interface RoutingDatabaseStackProps extends cdk.NestedStackProps {
+  stage: string;
+}
 
 export const DynamoDBTableProps = {
   RoutesDbTable: {
@@ -60,6 +64,19 @@ export class RoutingDatabaseStack extends cdk.NestedStack {
   constructor(scope: Construct, name: string, props: RoutingDatabaseStackProps) {
     super(scope, name, props)
 
+    // only BETA stage will create DB resource
+    const skipUniqueResourceCreation = props.stage != STAGE.BETA;
+    if (skipUniqueResourceCreation) {
+      this.routesDynamoDb = aws_dynamodb.Table.fromTableName(this, DynamoDBTableProps.RoutesDbTable.Name, DynamoDBTableProps.RoutesDbTable.Name) as aws_dynamodb.Table;
+      this.routesDbCachingRequestFlagDynamoDb = aws_dynamodb.Table.fromTableName(this, DynamoDBTableProps.RoutesDbCachingRequestFlagTable.Name, DynamoDBTableProps.RoutesDbCachingRequestFlagTable.Name) as aws_dynamodb.Table;
+      this.cachedRoutesDynamoDb = aws_dynamodb.Table.fromTableName(this, DynamoDBTableProps.CacheRouteDynamoDbTable.Name, DynamoDBTableProps.CacheRouteDynamoDbTable.Name) as aws_dynamodb.Table;
+      this.cachingRequestFlagDynamoDb = aws_dynamodb.Table.fromTableName(this, DynamoDBTableProps.CachingRequestFlagDynamoDbTable.Name, DynamoDBTableProps.CachingRequestFlagDynamoDbTable.Name) as aws_dynamodb.Table;
+      this.cachedV3PoolsDynamoDb = aws_dynamodb.Table.fromTableName(this, DynamoDBTableProps.V3PoolsDynamoDbTable.Name, DynamoDBTableProps.V3PoolsDynamoDbTable.Name) as aws_dynamodb.Table;
+      this.cachedV2PairsDynamoDb = aws_dynamodb.Table.fromTableName(this, DynamoDBTableProps.V2PairsDynamoCache.Name, DynamoDBTableProps.V2PairsDynamoCache.Name) as aws_dynamodb.Table;
+      this.tokenPropertiesCachingDynamoDb = aws_dynamodb.Table.fromTableName(this, DynamoDBTableProps.TokenPropertiesCachingDbTable.Name, DynamoDBTableProps.TokenPropertiesCachingDbTable.Name) as aws_dynamodb.Table;
+      return;
+    }
+
     // Creates a DynamoDB Table for storing the routes
     this.routesDynamoDb = new aws_dynamodb.Table(this, DynamoDBTableProps.RoutesDbTable.Name, {
       tableName: DynamoDBTableProps.RoutesDbTable.Name,
@@ -67,6 +84,7 @@ export class RoutingDatabaseStack extends cdk.NestedStack {
       sortKey: { name: DynamoDBTableProps.RoutesDbTable.SortKeyName, type: AttributeType.NUMBER },
       billingMode: BillingMode.PAY_PER_REQUEST,
       timeToLiveAttribute: DynamoDBTableProps.TTLAttributeName,
+      removalPolicy: RemovalPolicy.RETAIN_ON_UPDATE_OR_DELETE,
     })
 
     // Creates a DynamoDB Table for storing the buckets that are flagging as already cached in the RoutesDb
@@ -82,6 +100,7 @@ export class RoutingDatabaseStack extends cdk.NestedStack {
         sortKey: { name: DynamoDBTableProps.RoutesDbCachingRequestFlagTable.SortKeyName, type: AttributeType.NUMBER },
         billingMode: BillingMode.PAY_PER_REQUEST,
         timeToLiveAttribute: DynamoDBTableProps.TTLAttributeName,
+        removalPolicy: RemovalPolicy.RETAIN_ON_UPDATE_OR_DELETE,
       }
     )
 
@@ -92,6 +111,7 @@ export class RoutingDatabaseStack extends cdk.NestedStack {
       sortKey: { name: DynamoDBTableProps.CacheRouteDynamoDbTable.SortKeyName, type: AttributeType.STRING },
       billingMode: BillingMode.PAY_PER_REQUEST,
       timeToLiveAttribute: DynamoDBTableProps.TTLAttributeName,
+      removalPolicy: RemovalPolicy.RETAIN_ON_UPDATE_OR_DELETE,
     })
 
     // Creates a DynamoDB Table for storing the buckets that are flagging as already cached in the CachedRoutesDb
@@ -107,6 +127,7 @@ export class RoutingDatabaseStack extends cdk.NestedStack {
         sortKey: { name: DynamoDBTableProps.CachingRequestFlagDynamoDbTable.SortKeyName, type: AttributeType.STRING },
         billingMode: BillingMode.PAY_PER_REQUEST,
         timeToLiveAttribute: DynamoDBTableProps.TTLAttributeName,
+        removalPolicy: RemovalPolicy.RETAIN_ON_UPDATE_OR_DELETE,
       }
     )
 
@@ -117,6 +138,7 @@ export class RoutingDatabaseStack extends cdk.NestedStack {
       sortKey: { name: DynamoDBTableProps.V3PoolsDynamoDbTable.SortKeyName, type: AttributeType.NUMBER },
       billingMode: BillingMode.PAY_PER_REQUEST,
       timeToLiveAttribute: DynamoDBTableProps.TTLAttributeName,
+      removalPolicy: RemovalPolicy.RETAIN_ON_UPDATE_OR_DELETE,
     })
 
     // Creates a DynamoDB Table for storing the cached v2 pairs
@@ -126,6 +148,7 @@ export class RoutingDatabaseStack extends cdk.NestedStack {
       sortKey: { name: DynamoDBTableProps.V2PairsDynamoCache.SortKeyName, type: AttributeType.NUMBER },
       billingMode: BillingMode.PAY_PER_REQUEST,
       timeToLiveAttribute: DynamoDBTableProps.TTLAttributeName,
+      removalPolicy: RemovalPolicy.RETAIN_ON_UPDATE_OR_DELETE,
     })
 
     // Creates a TokenValidationResult Table for storing the FOT/SFT tokens
@@ -140,6 +163,7 @@ export class RoutingDatabaseStack extends cdk.NestedStack {
         },
         billingMode: BillingMode.PAY_PER_REQUEST,
         timeToLiveAttribute: DynamoDBTableProps.TTLAttributeName,
+        removalPolicy: RemovalPolicy.RETAIN_ON_UPDATE_OR_DELETE,
       }
     )
   }

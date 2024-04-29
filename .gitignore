@@ -3,6 +3,7 @@ node_modules
 .vscode
 build
 cdk.out
+.aws-sam/
 .yalc
 yalc.lock
 dist

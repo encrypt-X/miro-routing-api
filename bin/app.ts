@@ -1,12 +1,12 @@
 import { ChainId } from '@uniswap/sdk-core'
 import * as cdk from 'aws-cdk-lib'
-// import { CfnOutput, SecretValue, Stack, StackProps, Stage, StageProps } from 'aws-cdk-lib'
+import { CfnOutput, /*SecretValue, Stack, StackProps,*/ Stage, StageProps } from 'aws-cdk-lib'
 // import * as chatbot from 'aws-cdk-lib/aws-chatbot'
 // import { BuildEnvironmentVariableType } from 'aws-cdk-lib/aws-codebuild'
 // import { PipelineNotificationEvents } from 'aws-cdk-lib/aws-codepipeline'
 // import * as sm from 'aws-cdk-lib/aws-secretsmanager'
 // import { CodeBuildStep, CodePipeline, CodePipelineSource } from 'aws-cdk-lib/pipelines'
-// import { Construct } from 'constructs'
+import { Construct } from 'constructs'
 import dotenv from 'dotenv'
 import 'source-map-support/register'
 // import { SUPPORTED_CHAINS } from '../lib/handlers/injector-sor'
@@ -14,66 +14,66 @@ import { STAGE } from '../lib/util/stage'
 import { RoutingAPIStack } from './stacks/routing-api-stack'
 dotenv.config()
 
-// export class RoutingAPIStage extends Stage {
-//   public readonly url: CfnOutput
-//
-//   constructor(
-//     scope: Construct,
-//     id: string,
-//     props: StageProps & {
-//       jsonRpcProviders: { [chainName: string]: string }
-//       provisionedConcurrency: number
-//       ethGasStationInfoUrl: string
-//       chatbotSNSArn?: string
-//       stage: string
-//       internalApiKey?: string
-//       route53Arn?: string
-//       pinata_key?: string
-//       pinata_secret?: string
-//       hosted_zone?: string
-//       tenderlyUser: string
-//       tenderlyProject: string
-//       tenderlyAccessKey: string
-//       unicornSecret: string
-//     }
-//   ) {
-//     super(scope, id, props)
-//     const {
-//       jsonRpcProviders,
-//       provisionedConcurrency,
-//       ethGasStationInfoUrl,
-//       chatbotSNSArn,
-//       stage,
-//       internalApiKey,
-//       route53Arn,
-//       pinata_key,
-//       pinata_secret,
-//       hosted_zone,
-//       tenderlyUser,
-//       tenderlyProject,
-//       tenderlyAccessKey,
-//       unicornSecret,
-//     } = props
-//
-//     const { url } = new RoutingAPIStack(this, 'RoutingAPI', {
-//       jsonRpcProviders,
-//       provisionedConcurrency,
-//       ethGasStationInfoUrl,
-//       chatbotSNSArn,
-//       stage,
-//       internalApiKey,
-//       route53Arn,
-//       pinata_key,
-//       pinata_secret,
-//       hosted_zone,
-//       tenderlyUser,
-//       tenderlyProject,
-//       tenderlyAccessKey,
-//       unicornSecret,
-//     })
-//     this.url = url
-//   }
-// }
+export class RoutingAPIStage extends Stage {
+  public readonly url: CfnOutput
+
+  constructor(
+    scope: Construct,
+    id: string,
+    props: StageProps & {
+      jsonRpcProviders: { [chainName: string]: string }
+      provisionedConcurrency: number
+      ethGasStationInfoUrl: string
+      chatbotSNSArn?: string
+      stage: string
+      internalApiKey?: string
+      route53Arn?: string
+      pinata_key?: string
+      pinata_secret?: string
+      hosted_zone?: string
+      tenderlyUser: string
+      tenderlyProject: string
+      tenderlyAccessKey: string
+      unicornSecret: string
+    }
+  ) {
+    super(scope, id, props)
+    const {
+      jsonRpcProviders,
+      provisionedConcurrency,
+      ethGasStationInfoUrl,
+      chatbotSNSArn,
+      stage,
+      internalApiKey,
+      route53Arn,
+      pinata_key,
+      pinata_secret,
+      hosted_zone,
+      tenderlyUser,
+      tenderlyProject,
+      tenderlyAccessKey,
+      unicornSecret,
+    } = props
+
+    const { url } = new RoutingAPIStack(this, 'RoutingAPI', {
+      jsonRpcProviders,
+      provisionedConcurrency,
+      ethGasStationInfoUrl,
+      chatbotSNSArn,
+      stage,
+      internalApiKey,
+      route53Arn,
+      pinata_key,
+      pinata_secret,
+      hosted_zone,
+      tenderlyUser,
+      tenderlyProject,
+      tenderlyAccessKey,
+      unicornSecret,
+    })
+    this.url = url
+  }
+}
 
 // export class RoutingAPIPipeline extends Stack {
 //   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -271,13 +271,18 @@ Object.entries(jsonRpcProviders).forEach(([k,v]) => {
   if (!v) throw new Error(`no json RPC provider for ${k}`);
 })
 
-new RoutingAPIStack(app, 'RoutingAPIStack', {
+// set STAGE=BETA env var for staging deployment
+const stage = process.env.STAGE ?? STAGE.BETA;
+if (!Object.values(STAGE).find(s => s == stage)) {
+  throw new Error(`invalid stage: ${stage}`);
+}
+
+new RoutingAPIStage(app, `miro-${stage}`, {
   jsonRpcProviders: jsonRpcProviders,
   provisionedConcurrency: process.env.PROVISION_CONCURRENCY ? parseInt(process.env.PROVISION_CONCURRENCY) : 0,
-  throttlingOverride: process.env.THROTTLE_PER_FIVE_MINS,
   ethGasStationInfoUrl: process.env.ETH_GAS_STATION_INFO_URL!,
   chatbotSNSArn: process.env.CHATBOT_SNS_ARN,
-  stage: STAGE.PROD,
+  stage: stage,
   internalApiKey: process.env.INTERNAL_API_KEY ?? 'internal-api-key',
   route53Arn: process.env.ROLE_ARN,
   pinata_key: process.env.PINATA_API_KEY ?? '',
@@ -287,7 +292,7 @@ new RoutingAPIStack(app, 'RoutingAPIStack', {
   tenderlyProject: process.env.TENDERLY_PROJECT ?? '',
   tenderlyAccessKey: process.env.TENDERLY_ACCESS_KEY ?? '',
   unicornSecret: process.env.UNICORN_SECRET ?? '',
-})
+});
 
 // new RoutingAPIPipeline(app, 'RoutingAPIPipelineStack', {
 //   env: { account: '644039819003', region: 'us-east-2' },

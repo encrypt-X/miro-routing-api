@@ -63,6 +63,9 @@ export class RoutingAPIStack extends cdk.Stack {
       unicornSecret,
     } = props
 
+    // only BETA stage will create alarm, ACL resource
+    const skipUniqueResourceCreation = stage != STAGE.BETA;
+
     const {
       poolCacheBucket,
       poolCacheBucket2,
@@ -87,7 +90,7 @@ export class RoutingAPIStack extends cdk.Stack {
       cachedV3PoolsDynamoDb,
       cachedV2PairsDynamoDb,
       tokenPropertiesCachingDynamoDb,
-    } = new RoutingDatabaseStack(this, 'RoutingDatabaseStack', {})
+    } = new RoutingDatabaseStack(this, 'RoutingDatabaseStack', { stage })
 
     const { routingLambda, routingLambdaAlias } = new RoutingLambdaStack(this, 'RoutingLambdaStack', {
       poolCacheBucket,
@@ -111,11 +114,12 @@ export class RoutingAPIStack extends cdk.Stack {
       unicornSecret,
     })
 
-    const accessLogGroup = new aws_logs.LogGroup(this, 'RoutingAPIGAccessLogs')
+    const accessLogGroup = new aws_logs.LogGroup(this, `RoutingAPIGAccessLogs`)
 
     const api = new aws_apigateway.RestApi(this, 'routing-api', {
-      restApiName: 'Routing API',
+      restApiName: `Routing API${stage !== STAGE.PROD ? ' (beta)' : ''}`,
       deployOptions: {
+        stageName: stage,
         tracingEnabled: true,
         loggingLevel: MethodLoggingLevel.ERROR,
         accessLogDestination: new aws_apigateway.LogGroupLogDestination(accessLogGroup),
@@ -137,76 +141,76 @@ export class RoutingAPIStack extends cdk.Stack {
       },
     })
 
-    const ipThrottlingACL = new aws_waf.CfnWebACL(this, 'RoutingAPIIPThrottlingACL', {
-      defaultAction: { allow: {} },
-      scope: 'REGIONAL',
-      visibilityConfig: {
-        sampledRequestsEnabled: true,
-        cloudWatchMetricsEnabled: true,
-        metricName: 'RoutingAPIIPBasedThrottling',
-      },
-      customResponseBodies: {
-        RoutingAPIThrottledResponseBody: {
-          contentType: 'APPLICATION_JSON',
-          content: '{"errorCode": "TOO_MANY_REQUESTS"}',
+    const ipThrottlingACL = new aws_waf.CfnWebACL(this, `RoutingAPIIPThrottlingACL-${stage}`, {
+        defaultAction: { allow: {} },
+        scope: 'REGIONAL',
+        visibilityConfig: {
+          sampledRequestsEnabled: true,
+          cloudWatchMetricsEnabled: true,
+          metricName: `RoutingAPIIPBasedThrottling-${stage}`,
         },
-      },
-      name: 'RoutingAPIIPThrottling',
-      rules: [
-        {
-          name: 'ip',
-          priority: 0,
-          statement: {
-            rateBasedStatement: {
-              // Limit is per 5 mins, i.e. 120 requests every 5 mins
-              limit: throttlingOverride ? parseInt(throttlingOverride) : 120,
-              // API is of type EDGE so is fronted by Cloudfront as a proxy.
-              // Use the ip set in X-Forwarded-For by Cloudfront, not the regular IP
-              // which would just resolve to Cloudfronts IP.
-              aggregateKeyType: 'FORWARDED_IP',
-              forwardedIpConfig: {
-                headerName: 'X-Forwarded-For',
-                fallbackBehavior: 'MATCH',
-              },
-              scopeDownStatement: {
-                notStatement: {
-                  statement: {
-                    byteMatchStatement: {
-                      fieldToMatch: {
-                        singleHeader: {
-                          name: 'x-api-key',
+        customResponseBodies: {
+          RoutingAPIThrottledResponseBody: {
+            contentType: 'APPLICATION_JSON',
+            content: '{"errorCode": "TOO_MANY_REQUESTS"}',
+          },
+        },
+        name: `RoutingAPIIPThrottling-${stage}`,
+        rules: [
+          {
+            name: 'ip',
+            priority: 0,
+            statement: {
+              rateBasedStatement: {
+                // Limit is per 5 mins, i.e. 120 requests every 5 mins
+                limit: throttlingOverride ? parseInt(throttlingOverride) : 120,
+                // API is of type EDGE so is fronted by Cloudfront as a proxy.
+                // Use the ip set in X-Forwarded-For by Cloudfront, not the regular IP
+                // which would just resolve to Cloudfronts IP.
+                aggregateKeyType: 'FORWARDED_IP',
+                forwardedIpConfig: {
+                  headerName: 'X-Forwarded-For',
+                  fallbackBehavior: 'MATCH',
+                },
+                scopeDownStatement: {
+                  notStatement: {
+                    statement: {
+                      byteMatchStatement: {
+                        fieldToMatch: {
+                          singleHeader: {
+                            name: 'x-api-key',
+                          },
                         },
+                        positionalConstraint: 'EXACTLY',
+                        searchString: internalApiKey,
+                        textTransformations: [
+                          {
+                            type: 'NONE',
+                            priority: 0,
+                          },
+                        ],
                       },
-                      positionalConstraint: 'EXACTLY',
-                      searchString: internalApiKey,
-                      textTransformations: [
-                        {
-                          type: 'NONE',
-                          priority: 0,
-                        },
-                      ],
                     },
                   },
                 },
               },
             },
-          },
-          action: {
-            block: {
-              customResponse: {
-                responseCode: 429,
-                customResponseBodyKey: 'RoutingAPIThrottledResponseBody',
+            action: {
+              block: {
+                customResponse: {
+                  responseCode: 429,
+                  customResponseBodyKey: 'RoutingAPIThrottledResponseBody',
+                },
               },
             },
+            visibilityConfig: {
+              sampledRequestsEnabled: true,
+              cloudWatchMetricsEnabled: true,
+              metricName: 'RoutingAPIIPBasedThrottlingRule',
+            },
           },
-          visibilityConfig: {
-            sampledRequestsEnabled: true,
-            cloudWatchMetricsEnabled: true,
-            metricName: 'RoutingAPIIPBasedThrottlingRule',
-          },
-        },
-      ],
-    })
+        ],
+      })
 
     const region = cdk.Stack.of(this).region
     const apiArn = `arn:aws:apigateway:${region}::/restapis/${api.restApiId}/stages/${api.deploymentStage.stageName}`
@@ -216,12 +220,14 @@ export class RoutingAPIStack extends cdk.Stack {
       webAclArn: ipThrottlingACL.getAtt('Arn').toString(),
     })
 
-    new RoutingDashboardStack(this, 'RoutingDashboardStack', {
-      apiName: api.restApiName,
-      routingLambdaName: routingLambda.functionName,
-      poolCacheLambdaNameArray,
-      ipfsPoolCacheLambdaName: ipfsPoolCachingLambda ? ipfsPoolCachingLambda.functionName : undefined,
-    })
+    if (!skipUniqueResourceCreation) {
+      new RoutingDashboardStack(this, 'RoutingDashboardStack', {
+        apiName: api.restApiName,
+        routingLambdaName: routingLambda.functionName,
+        poolCacheLambdaNameArray,
+        ipfsPoolCacheLambdaName: ipfsPoolCachingLambda ? ipfsPoolCachingLambda.functionName : undefined,
+      })
+    }
 
     const lambdaIntegration = new aws_apigateway.LambdaIntegration(routingLambdaAlias)
 
@@ -234,19 +240,23 @@ export class RoutingAPIStack extends cdk.Stack {
     quote.addMethod('GET', lambdaIntegration)
 
     // All alarms default to GreaterThanOrEqualToThreshold for when to be triggered.
-    const apiAlarm5xxSev2 = new aws_cloudwatch.Alarm(this, 'RoutingAPI-SEV2-5XXAlarm', {
-      alarmName: 'RoutingAPI-SEV2-5XX',
-      metric: api.metricServerError({
-        period: Duration.minutes(5),
-        // For this metric 'avg' represents error rate.
-        statistic: 'avg',
-      }),
-      threshold: 0.02,
-      // Beta has much less traffic so is more susceptible to transient errors.
-      evaluationPeriods: stage == STAGE.BETA ? 5 : 3,
-    })
+    const apiAlarm5xxSev2 = skipUniqueResourceCreation
+      ? aws_cloudwatch.Alarm.fromAlarmName(this, 'RoutingAPI-SEV2-5XXAlarm', 'RoutingAPI-SEV2-5XX') as aws_cloudwatch.Alarm
+      : new aws_cloudwatch.Alarm(this, 'RoutingAPI-SEV2-5XXAlarm', {
+        alarmName: 'RoutingAPI-SEV2-5XX',
+        metric: api.metricServerError({
+          period: Duration.minutes(5),
+          // For this metric 'avg' represents error rate.
+          statistic: 'avg',
+        }),
+        threshold: 0.02,
+        // Beta has much less traffic so is more susceptible to transient errors.
+        evaluationPeriods: stage == STAGE.BETA ? 5 : 3,
+      })
 
-    const apiAlarm5xxSev3 = new aws_cloudwatch.Alarm(this, 'RoutingAPI-SEV3-5XXAlarm', {
+    const apiAlarm5xxSev3 = skipUniqueResourceCreation
+      ? aws_cloudwatch.Alarm.fromAlarmName(this, 'RoutingAPI-SEV3-5XXAlarm', 'RoutingAPI-SEV3-5XX') as aws_cloudwatch.Alarm
+      : new aws_cloudwatch.Alarm(this, 'RoutingAPI-SEV3-5XXAlarm', {
       alarmName: 'RoutingAPI-SEV3-5XX',
       metric: api.metricServerError({
         period: Duration.minutes(5),
@@ -258,7 +268,9 @@ export class RoutingAPIStack extends cdk.Stack {
       evaluationPeriods: stage == STAGE.BETA ? 5 : 3,
     })
 
-    const apiAlarm4xxSev2 = new aws_cloudwatch.Alarm(this, 'RoutingAPI-SEV2-4XXAlarm', {
+    const apiAlarm4xxSev2 = skipUniqueResourceCreation
+      ? aws_cloudwatch.Alarm.fromAlarmName(this, 'RoutingAPI-SEV2-4XXAlarm', 'RoutingAPI-SEV2-4XX') as aws_cloudwatch.Alarm
+      : new aws_cloudwatch.Alarm(this, 'RoutingAPI-SEV2-4XXAlarm', {
       alarmName: 'RoutingAPI-SEV2-4XX',
       metric: api.metricClientError({
         period: Duration.minutes(5),
@@ -268,7 +280,9 @@ export class RoutingAPIStack extends cdk.Stack {
       evaluationPeriods: 3,
     })
 
-    const apiAlarm4xxSev3 = new aws_cloudwatch.Alarm(this, 'RoutingAPI-SEV3-4XXAlarm', {
+    const apiAlarm4xxSev3 = skipUniqueResourceCreation
+      ? aws_cloudwatch.Alarm.fromAlarmName(this, 'RoutingAPI-SEV3-4XXAlarm', 'RoutingAPI-SEV3-4XX') as aws_cloudwatch.Alarm
+      : new aws_cloudwatch.Alarm(this, 'RoutingAPI-SEV3-4XXAlarm', {
       alarmName: 'RoutingAPI-SEV3-4XX',
       metric: api.metricClientError({
         period: Duration.minutes(5),
@@ -278,7 +292,9 @@ export class RoutingAPIStack extends cdk.Stack {
       evaluationPeriods: 3,
     })
 
-    const apiAlarmLatencySev2 = new aws_cloudwatch.Alarm(this, 'RoutingAPI-SEV2-Latency', {
+    const apiAlarmLatencySev2 = skipUniqueResourceCreation
+      ? aws_cloudwatch.Alarm.fromAlarmName(this, 'RoutingAPI-SEV2-Latency', 'RoutingAPI-SEV2-Latency') as aws_cloudwatch.Alarm
+      : new aws_cloudwatch.Alarm(this, 'RoutingAPI-SEV2-Latency', {
       alarmName: 'RoutingAPI-SEV2-Latency',
       metric: api.metricLatency({
         period: Duration.minutes(5),
@@ -288,7 +304,9 @@ export class RoutingAPIStack extends cdk.Stack {
       evaluationPeriods: 3,
     })
 
-    const apiAlarmLatencySev3 = new aws_cloudwatch.Alarm(this, 'RoutingAPI-SEV3-Latency', {
+    const apiAlarmLatencySev3 = skipUniqueResourceCreation
+      ? aws_cloudwatch.Alarm.fromAlarmName(this, 'RoutingAPI-SEV3-Latency', 'RoutingAPI-SEV3-Latency') as aws_cloudwatch.Alarm
+      : new aws_cloudwatch.Alarm(this, 'RoutingAPI-SEV3-Latency', {
       alarmName: 'RoutingAPI-SEV3-Latency',
       metric: api.metricLatency({
         period: Duration.minutes(5),
@@ -303,7 +321,9 @@ export class RoutingAPIStack extends cdk.Stack {
     // account for the fees taken during transfer when we show the user the quote).
     //
     // For this reason we only alert on SEV3 to avoid unnecessary pages.
-    const simulationAlarmSev3 = new aws_cloudwatch.Alarm(this, 'RoutingAPI-SEV3-Simulation', {
+    const simulationAlarmSev3 = skipUniqueResourceCreation
+      ? aws_cloudwatch.Alarm.fromAlarmName(this, 'RoutingAPI-SEV3-Simulation', 'RoutingAPI-SEV3-Simulation') as aws_cloudwatch.Alarm
+      : new aws_cloudwatch.Alarm(this, 'RoutingAPI-SEV3-Simulation', {
       alarmName: 'RoutingAPI-SEV3-Simulation',
       metric: new MathExpression({
         expression: '100*(simulationFailed/simulationRequested)',
@@ -350,7 +370,9 @@ export class RoutingAPIStack extends cdk.Stack {
           }),
         },
       })
-      const alarm = new aws_cloudwatch.Alarm(this, alarmName, {
+      const alarm = skipUniqueResourceCreation
+        ? aws_cloudwatch.Alarm.fromAlarmName(this, alarmName, alarmName) as aws_cloudwatch.Alarm
+        : new aws_cloudwatch.Alarm(this, alarmName, {
         alarmName,
         metric,
         threshold: 80,
@@ -383,7 +405,9 @@ export class RoutingAPIStack extends cdk.Stack {
           }),
         },
       })
-      const alarm = new aws_cloudwatch.Alarm(this, alarmName, {
+      const alarm = skipUniqueResourceCreation
+        ? aws_cloudwatch.Alarm.fromAlarmName(this, alarmName, alarmName) as aws_cloudwatch.Alarm
+        : new aws_cloudwatch.Alarm(this, alarmName, {
         alarmName,
         metric,
         comparisonOperator: ComparisonOperator.LESS_THAN_OR_EQUAL_TO_THRESHOLD,

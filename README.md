@@ -1,7 +1,12 @@
 # How to
 - setup AWS CLI and access token in shell env, then setup deployment profile by `export $(cat .env.dev)`
 - build CDK template by `cdk synth` to `./cdk.out`
-- deploy `lib/` codes by `cdk deploy --require-approval any-change`
+- deploy `lib/` codes by `cdk deploy --require-approval any-change "miro-beta/*"`
+
+```
+$ (copy and paste AWS access token for encrypt_dev) && \ 
+   export $(cat .env.dev) && cdk synth && cdk deploy --require-approval any-change "miro-beta/*"
+```
 
 ---
 
