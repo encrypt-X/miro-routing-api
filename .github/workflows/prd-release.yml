@@ -7,14 +7,12 @@ on:
 permissions:
   id-token: write   # This is required for requesting the JWT
   contents: read    # This is required for actions/checkout
+
 jobs:
   aws-cdk-deploy:
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
     steps:
-      - name: Exit if not on master branch
-        if: endsWith(github.base_ref, 'main') == false
-        run: exit -1
-        
       - uses: actions/setup-node@v4
       
       - name: Get npm cache directory
