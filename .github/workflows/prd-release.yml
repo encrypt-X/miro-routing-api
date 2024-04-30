@@ -4,8 +4,6 @@ on:
     tags:
       - 'v*'
 
-  # allow manual dispatch on action tab
-  workflow_dispatch:
 permissions:
   id-token: write   # This is required for requesting the JWT
   contents: read    # This is required for actions/checkout
@@ -14,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Exit if not on master branch
-        if: endsWith(github.ref, 'main') == false
+        if: endsWith(github.base_ref, 'main') == false
         run: exit -1
         
       - uses: actions/setup-node@v4
