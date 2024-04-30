@@ -18,7 +18,7 @@ jobs:
       
       - uses: actions/setup-node@v4
       
-      - run: npm install --only=dev
+      - run: npm install --include dev
         
       - name: Configure Env Vars
         uses: cardinalby/export-env-action@v2
@@ -36,6 +36,7 @@ jobs:
         uses: youyo/aws-cdk-github-actions@v2
         with:
           cdk_subcommand: 'diff'
+          cdk_stack: 'miro-beta/*'
           actions_comment: true
 
       - name: cdk synth
