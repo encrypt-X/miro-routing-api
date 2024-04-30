@@ -13,9 +13,6 @@ jobs:
   aws-cdk-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Git clone the repository
-        uses: actions/checkout@v4
-      
       - uses: actions/setup-node@v4
       
       - name: Get npm cache directory
@@ -23,8 +20,19 @@ jobs:
         shell: bash
         run: echo "dir=$(npm config get cache)" >> ${GITHUB_OUTPUT}
         
+      - uses: actions/cache@v3
+        id: npm-cache # use this to check for `cache-hit` ==> if: steps.npm-cache.outputs.cache-hit != 'true'
+        with:
+          path: ${{ steps.npm-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+            
+      - name: Git clone the repository
+        uses: actions/checkout@v4
+      
       - run: npm install --include dev
-        
+            
       - name: Configure Env Vars
         uses: cardinalby/export-env-action@v2
         with:
