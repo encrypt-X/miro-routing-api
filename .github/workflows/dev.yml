@@ -13,6 +13,9 @@ jobs:
   DevReleaseWithCDK:
     runs-on: ubuntu-latest
     steps:
+      - name: Git clone the repository
+        uses: actions/checkout@v4
+        
       - name: Configure Env Vars
         uses: cardinalby/export-env-action@v2
         with:
@@ -24,9 +27,6 @@ jobs:
           aws-region: ${{ env.AWS_DEFAULT_REGION }}
           role-to-assume: arn:aws:iam::372513869951:role/PowerUserAccessForGithubActions # IAM role for encrypt_dev account
           role-session-name: PowerUserAccessForGithubActionsSession
-
-      - name: Git clone the repository
-        uses: actions/checkout@v4
 
       - name: cdk diff
         uses: youyo/aws-cdk-github-actions@v2
