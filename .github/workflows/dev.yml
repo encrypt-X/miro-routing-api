@@ -10,7 +10,7 @@ permissions:
   id-token: write   # This is required for requesting the JWT
   contents: read    # This is required for actions/checkout
 jobs:
-  DevReleaseWithCDK:
+  aws-cdk-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Git clone the repository
@@ -18,6 +18,11 @@ jobs:
       
       - uses: actions/setup-node@v4
       
+      - name: Get npm cache directory
+        id: npm-cache-dir
+        shell: bash
+        run: echo "dir=$(npm config get cache)" >> ${GITHUB_OUTPUT}
+        
       - run: npm install --include dev
         
       - name: Configure Env Vars
@@ -43,8 +48,8 @@ jobs:
         uses: youyo/aws-cdk-github-actions@v2
         with:
           cdk_subcommand: 'synth'
+          cdk_stack: 'miro-beta/*'
           # cdk_version: '2.139.0'
-          # working_dir: 'src'
 
       - name: cdk deploy
         uses: youyo/aws-cdk-github-actions@v2
