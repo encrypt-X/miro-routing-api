@@ -1,0 +1,50 @@
+name: dev-release
+on:
+  push:
+    branches:
+      - dev
+  
+  # allow manual dispatch on action tab
+  workflow_dispatch:
+permissions:
+  id-token: write   # This is required for requesting the JWT
+  contents: read    # This is required for actions/checkout
+jobs:
+  DevReleaseWithCDK:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure Env Vars
+        uses: cardinalby/export-env-action@v2
+        with:
+          envFile: '.env.dev'
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+          role-to-assume: arn:aws:iam::372513869951:role/PowerUserAccessForGithubActions # IAM role for encrypt_dev account
+          role-session-name: PowerUserAccessForGithubActionsSession
+
+      - name: Git clone the repository
+        uses: actions/checkout@v4
+
+      - name: cdk diff
+        uses: youyo/aws-cdk-github-actions@v2
+        with:
+          cdk_subcommand: 'diff'
+          actions_comment: true
+
+      - name: cdk synth
+        uses: youyo/aws-cdk-github-actions@v2
+        with:
+          cdk_subcommand: 'synth'
+          # cdk_version: '2.139.0'
+          # working_dir: 'src'
+
+      - name: cdk deploy
+        uses: youyo/aws-cdk-github-actions@v2
+        with:
+          cdk_subcommand: 'deploy'
+          cdk_stack: 'miro-beta/*'
+          cdk_args: '--require-approval never'
+          actions_comment: false
