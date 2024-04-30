@@ -1,0 +1,75 @@
+name: prd-release
+on:
+  push:
+    tags:
+      - 'v*'
+
+  # allow manual dispatch on action tab
+  workflow_dispatch:
+permissions:
+  id-token: write   # This is required for requesting the JWT
+  contents: read    # This is required for actions/checkout
+jobs:
+  aws-cdk-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Exit if not on master branch
+        if: endsWith(github.ref, 'main') == false
+        run: exit -1
+        
+      - uses: actions/setup-node@v4
+      
+      - name: Get npm cache directory
+        id: npm-cache-dir
+        shell: bash
+        run: echo "dir=$(npm config get cache)" >> ${GITHUB_OUTPUT}
+        
+      - uses: actions/cache@v3
+        id: npm-cache # use this to check for `cache-hit` ==> if: steps.npm-cache.outputs.cache-hit != 'true'
+        with:
+          path: ${{ steps.npm-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-main-
+            
+      - name: Git clone the repository
+        uses: actions/checkout@v4
+      
+      - run: npm install --include dev
+            
+      - name: Configure Env Vars
+        uses: cardinalby/export-env-action@v2
+        with:
+          envFile: '.env.prd'
+      
+      - name: Override STAGE for Production Release
+        run: echo "STAGE=prod" >> $GITHUB_ENV
+        
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+          role-to-assume: arn:aws:iam::381491983184:role/LimitedUserAccessForGithubActions # IAM role for encrypt_prd account
+          role-session-name: LimitedUserAccessForGithubActionsSession
+
+      - name: cdk diff
+        uses: youyo/aws-cdk-github-actions@v2
+        with:
+          cdk_subcommand: 'diff'
+          cdk_stack: 'miro-prod/*'
+          actions_comment: true
+
+      - name: cdk synth
+        uses: youyo/aws-cdk-github-actions@v2
+        with:
+          cdk_subcommand: 'synth'
+          cdk_stack: 'miro-prod/*'
+          # cdk_version: '2.139.0'
+
+      - name: cdk deploy
+        uses: youyo/aws-cdk-github-actions@v2
+        with:
+          cdk_subcommand: 'deploy'
+          cdk_stack: 'miro-prod/*'
+          cdk_args: '--require-approval never'
+          actions_comment: false
