@@ -37,6 +37,10 @@ jobs:
     needs: check-current-branch
     # only run if tag is present on branch 'main'
     if: contains(${{ needs.check.outputs.branch }}, 'main')`
+    
+    # it is required for passing AWS IAM policy
+    environment: prod
+    
     steps:
       - uses: actions/setup-node@v4
       
