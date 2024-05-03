@@ -1,12 +1,17 @@
-# How to
+# How to manually deploy
 - setup AWS CLI and access token in shell env, then setup deployment profile by `export $(cat .env.dev)`
 - build CDK template by `cdk synth` to `./cdk.out`
 - deploy `lib/` codes by `cdk deploy --require-approval any-change "miro-beta/*"`
 
 ```
-$ (copy and paste AWS access token for encrypt_dev) && \ 
+$ (aws login sso | copy and paste AWS access token for encrypt_dev) && \ 
    export $(cat .env.dev) && cdk synth && cdk deploy --require-approval any-change "miro-beta/*"
 ```
+
+# How to locally test lambda handlers
+- `export $(cat .env.dev) && cdk synth` - run when `./bin/*` files are updated.
+- `sam build -t ./cdk.out/assembly-miro-beta/mirobetaRoutingAPIC73FC722.template.json` - run when `./lib/handlers` updated.
+- `sam local invoke RoutingLambdaStack/CustomLambda -e ./lib/handlers/custom/test-event.json` - invoke `ANY /custom` handler with `./lib/handlers/custom/test-event.json` request.
 
 ---
 
