@@ -17,14 +17,19 @@ import JSBI from 'jsbi'
 import _ from 'lodash'
 import { APIGLambdaHandler, ErrorResponse, HandleRequestParams, Response } from '../handler'
 import { ContainerInjected, RequestInjected } from '../injector-sor'
-import { QuoteResponse, QuoteResponseSchemaJoi, V2PoolInRoute, V3PoolInRoute } from '../schema'
 import {
   DEFAULT_ROUTING_CONFIG_BY_CHAIN,
   QUOTE_SPEED_CONFIG,
   INTENT_SPECIFIC_CONFIG,
   FEE_ON_TRANSFER_SPECIFIC_CONFIG,
 } from '../shared'
-import { QuoteQueryParams, QuoteQueryParamsJoi, TradeTypeParam } from './schema/quote-schema'
+import {
+  QuoteQueryParams,
+  QuoteQueryParamsJoi,
+  QuoteResponse,
+  QuoteResponseSchemaJoi,
+  TradeTypeParam, V2PoolInRoute, V3PoolInRoute
+} from './schema/quote-schema'
 import { simulationStatusToString } from './util/simulation'
 import Logger from 'bunyan'
 import { PAIRS_TO_TRACK } from './util/pairs-to-track'

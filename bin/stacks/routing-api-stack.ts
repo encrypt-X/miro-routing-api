@@ -92,7 +92,7 @@ export class RoutingAPIStack extends cdk.Stack {
       tokenPropertiesCachingDynamoDb,
     } = new RoutingDatabaseStack(this, 'RoutingDatabaseStack', { stage })
 
-    const { routingLambda, routingLambdaAlias } = new RoutingLambdaStack(this, 'RoutingLambdaStack', {
+    const { routingLambda, routingLambdaAlias, customLambda } = new RoutingLambdaStack(this, 'RoutingLambdaStack', {
       poolCacheBucket,
       poolCacheBucket2,
       poolCacheKey,
@@ -229,15 +229,21 @@ export class RoutingAPIStack extends cdk.Stack {
       })
     }
 
-    const lambdaIntegration = new aws_apigateway.LambdaIntegration(routingLambdaAlias)
-
     const quote = api.root.addResource('quote', {
       defaultCorsPreflightOptions: {
         allowOrigins: aws_apigateway.Cors.ALL_ORIGINS,
         allowMethods: aws_apigateway.Cors.ALL_METHODS,
       },
     })
-    quote.addMethod('GET', lambdaIntegration)
+    quote.addMethod('GET', new aws_apigateway.LambdaIntegration(routingLambdaAlias))
+
+    const custom = api.root.addResource('custom', {
+      defaultCorsPreflightOptions: {
+        allowOrigins: aws_apigateway.Cors.ALL_ORIGINS,
+        allowMethods: aws_apigateway.Cors.ALL_METHODS,
+      },
+    })
+    custom.addMethod('ANY', new aws_apigateway.LambdaIntegration(customLambda))
 
     // All alarms default to GreaterThanOrEqualToThreshold for when to be triggered.
     const apiAlarm5xxSev2 = skipUniqueResourceCreation

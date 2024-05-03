@@ -98,10 +98,10 @@ export interface ContainerInjected {
   }
 }
 
-export abstract class InjectorSOR<Router, QueryParams> extends Injector<
+export abstract class InjectorSOR<Router, QueryParams, RequestBody = void> extends Injector<
   ContainerInjected,
   RequestInjected<Router>,
-  void,
+  RequestBody,
   QueryParams
 > {
   public async buildContainerInjected(): Promise<ContainerInjected> {

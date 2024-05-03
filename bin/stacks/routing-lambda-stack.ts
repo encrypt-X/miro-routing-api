@@ -38,6 +38,7 @@ export interface RoutingLambdaStackProps extends cdk.NestedStackProps {
 export class RoutingLambdaStack extends cdk.NestedStack {
   public readonly routingLambda: aws_lambda_nodejs.NodejsFunction
   public readonly routingLambdaAlias: aws_lambda.Alias
+  public readonly customLambda: aws_lambda_nodejs.NodejsFunction
 
   constructor(scope: Construct, name: string, props: RoutingLambdaStackProps) {
     super(scope, name, props)
@@ -84,6 +85,51 @@ export class RoutingLambdaStack extends cdk.NestedStack {
     tokenPropertiesCachingDynamoDb.grantReadWriteData(lambdaRole)
 
     const region = cdk.Stack.of(this).region
+
+    this.customLambda = new aws_lambda_nodejs.NodejsFunction(this, 'CustomLambda', {
+      role: lambdaRole,
+      runtime: aws_lambda.Runtime.NODEJS_18_X,
+      entry: path.join(__dirname, '../../lib/handlers/index.ts'),
+      handler: 'customHandler',
+      // 11/8/23: URA currently calls the Routing API with a timeout of 10 seconds.
+      // Set this lambda's timeout to be slightly lower to give them time to
+      // log the response in the event of a failure on our end.
+      timeout: cdk.Duration.seconds(9),
+      memorySize: 1792,
+      ephemeralStorageSize: Size.gibibytes(1),
+      deadLetterQueueEnabled: true,
+      bundling: {
+        minify: true,
+        sourceMap: true,
+      },
+
+      awsSdkConnectionReuse: true,
+
+      description: 'Custom Lambda',
+      environment: {
+        NODE_OPTIONS: '--enable-source-maps',
+        POOL_CACHE_BUCKET: poolCacheBucket.bucketName,
+        POOL_CACHE_BUCKET_2: poolCacheBucket2.bucketName,
+        POOL_CACHE_KEY: poolCacheKey,
+        TOKEN_LIST_CACHE_BUCKET: tokenListCacheBucket.bucketName,
+        ETH_GAS_STATION_INFO_URL: ethGasStationInfoUrl,
+        TENDERLY_USER: tenderlyUser,
+        TENDERLY_PROJECT: tenderlyProject,
+        TENDERLY_ACCESS_KEY: tenderlyAccessKey,
+        ROUTES_TABLE_NAME: DynamoDBTableProps.RoutesDbTable.Name,
+        ROUTES_CACHING_REQUEST_FLAG_TABLE_NAME: DynamoDBTableProps.RoutesDbCachingRequestFlagTable.Name,
+        CACHED_ROUTES_TABLE_NAME: DynamoDBTableProps.CacheRouteDynamoDbTable.Name,
+        CACHING_REQUEST_FLAG_TABLE_NAME: DynamoDBTableProps.CachingRequestFlagDynamoDbTable.Name,
+        CACHED_V3_POOLS_TABLE_NAME: DynamoDBTableProps.V3PoolsDynamoDbTable.Name,
+        V2_PAIRS_CACHE_TABLE_NAME: DynamoDBTableProps.V2PairsDynamoCache.Name,
+        TOKEN_PROPERTIES_CACHING_TABLE_NAME: tokenPropertiesCachingDynamoDb.tableName,
+        UNICORN_SECRET: unicornSecret,
+        ...jsonRpcProviders,
+      },
+      layers: [],
+      tracing: aws_lambda.Tracing.ACTIVE,
+      logRetention: RetentionDays.TWO_WEEKS,
+    })
 
     this.routingLambda = new aws_lambda_nodejs.NodejsFunction(this, 'RoutingLambda2', {
       role: lambdaRole,
