@@ -74,9 +74,9 @@ export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (chainId: ChainId): AlphaRouterCo
           topNDirectSwaps: 1,
           topNTokenInOut: 5,
           topNSecondHop: 2,
-          tokensToAvoidOnSecondHops: new LowerCaseStringArray(
-            '0xd46ba6d942050d489dbd938a2c909a5d5039a161' // AMPL on Mainnet
-          ),
+          // tokensToAvoidOnSecondHops: new LowerCaseStringArray(
+          //   '0xd46ba6d942050d489dbd938a2c909a5d5039a161' // AMPL on Mainnet
+          // ),
           topNWithEachBaseToken: 2,
           topNWithBaseToken: 6,
         },
@@ -85,9 +85,9 @@ export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (chainId: ChainId): AlphaRouterCo
           topNDirectSwaps: 2,
           topNTokenInOut: 3,
           topNSecondHop: 1,
-          topNSecondHopForTokenAddress: new MapWithLowerCaseKey<number>([
-            ['0x5f98805a4e8be255a32880fdec7f6728c6568ba0', 2], // LUSD
-          ]),
+          // topNSecondHopForTokenAddress: new MapWithLowerCaseKey<number>([
+          //   ['0x5f98805a4e8be255a32880fdec7f6728c6568ba0', 2], // LUSD
+          // ]),
           topNWithEachBaseToken: 3,
           topNWithBaseToken: 5,
         },
